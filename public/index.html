@@ -176,6 +176,59 @@
 
             <section class="card wide">
               <div class="card-header">
+                <h2>Dose Calculator</h2>
+              </div>
+              <form id="calculator-form" class="stack">
+                <div class="inline-grid triple">
+                  <label>
+                    Pen dose
+                    <select name="penDose">
+                      <option value="2.5">2.5 mg</option>
+                      <option value="5">5 mg</option>
+                      <option value="7.5">7.5 mg</option>
+                      <option value="10">10 mg</option>
+                      <option value="12">12 mg</option>
+                      <option value="12.5">12.5 mg</option>
+                      <option value="15">15 mg</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </label>
+                  <label id="calculator-custom-pen-wrap" class="hidden">
+                    Custom pen mg
+                    <input name="customPenDose" type="number" min="0.01" step="0.01" />
+                  </label>
+                  <label>
+                    Required dose
+                    <input name="requiredDose" type="number" min="0.01" step="0.01" placeholder="Blank = full pen dose" />
+                  </label>
+                </div>
+                <div class="inline-grid">
+                  <label>
+                    Clicks for full pen dose
+                    <input name="fullDoseClicks" type="number" min="1" step="1" value="60" required />
+                  </label>
+                  <label>
+                    Round clicks to
+                    <select name="rounding">
+                      <option value="nearest">Nearest whole click</option>
+                      <option value="down">Round down</option>
+                      <option value="up">Round up</option>
+                      <option value="exact">Show exact clicks</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="button-row">
+                  <button type="submit">Calculate</button>
+                </div>
+                <div class="stats" id="calculator-result"></div>
+                <p class="muted">
+                  This calculator assumes clicks scale linearly from the full pen dose. Verify against your pen markings before using it.
+                </p>
+              </form>
+            </section>
+
+            <section class="card wide">
+              <div class="card-header">
                 <h2>How You Feel Today</h2>
               </div>
               <form id="checkin-form" class="stack">

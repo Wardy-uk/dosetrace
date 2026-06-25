@@ -130,6 +130,10 @@ h1 {
   grid-template-columns: 2fr 1fr 1fr;
 }
 
+.inline-grid.triple > label:only-child {
+  grid-column: span 3;
+}
+
 .inline-grid.quad {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }

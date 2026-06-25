@@ -33,6 +33,9 @@ const els = {
   settingsForm: document.getElementById("settings-form"),
   checkinForm: document.getElementById("checkin-form"),
   suggestionSummary: document.getElementById("suggestion-summary"),
+  calculatorForm: document.getElementById("calculator-form"),
+  calculatorResult: document.getElementById("calculator-result"),
+  calculatorCustomPenWrap: document.getElementById("calculator-custom-pen-wrap"),
 };
 
 function isStandaloneMode() {
@@ -239,6 +242,58 @@ function renderHistory() {
       `,
     )
     .join("");
+}
+
+function getCalculatorPenDose() {
+  if (els.calculatorForm.penDose.value === "custom") {
+    return Number(els.calculatorForm.customPenDose.value);
+  }
+
+  return Number(els.calculatorForm.penDose.value);
+}
+
+function renderCalculatorResult() {
+  const penDose = getCalculatorPenDose();
+  const enteredRequiredDose = Number(els.calculatorForm.requiredDose.value);
+  const fullDoseClicks = Number(els.calculatorForm.fullDoseClicks.value);
+  const rounding = els.calculatorForm.rounding.value;
+
+  if (!(penDose > 0) || !(fullDoseClicks > 0)) {
+    els.calculatorResult.innerHTML =
+      '<span class="stats-card">Enter a valid pen dose and full-dose click count.</span>';
+    return;
+  }
+
+  const requiredDose =
+    enteredRequiredDose > 0 ? enteredRequiredDose : penDose;
+
+  if (requiredDose > penDose) {
+    els.calculatorResult.innerHTML =
+      '<span class="stats-card">Required dose cannot be larger than the selected pen dose.</span>';
+    return;
+  }
+
+  const exactClicks = (requiredDose / penDose) * fullDoseClicks;
+  let displayClicks = exactClicks;
+
+  if (rounding === "nearest") {
+    displayClicks = Math.round(exactClicks);
+  } else if (rounding === "down") {
+    displayClicks = Math.floor(exactClicks);
+  } else if (rounding === "up") {
+    displayClicks = Math.ceil(exactClicks);
+  }
+
+  const displayText =
+    rounding === "exact"
+      ? exactClicks.toFixed(2).replace(/\.00$/, "")
+      : String(displayClicks);
+
+  els.calculatorResult.innerHTML = `
+    <span class="stats-card"><strong>Clicks:</strong> ${displayText}</span>
+    <span class="stats-card"><strong>Required dose:</strong> ${requiredDose} mg</span>
+    <span class="stats-card"><strong>Formula:</strong> (${requiredDose} / ${penDose}) x ${fullDoseClicks}</span>
+  `;
 }
 
 function getMedicationsById() {
@@ -572,6 +627,7 @@ function render() {
   renderHistory();
   renderChart();
   renderSuggestion();
+  renderCalculatorResult();
   renderSettings();
   resetDoseForm();
 }
@@ -714,6 +770,27 @@ els.rangeTabs.addEventListener("click", (event) => {
     tab.classList.toggle("active", tab === button),
   );
   renderChart();
+});
+
+els.calculatorForm.penDose.addEventListener("change", () => {
+  const custom = els.calculatorForm.penDose.value === "custom";
+  els.calculatorCustomPenWrap.classList.toggle("hidden", !custom);
+  renderCalculatorResult();
+});
+
+els.calculatorForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  renderCalculatorResult();
+});
+
+[
+  "customPenDose",
+  "requiredDose",
+  "fullDoseClicks",
+  "rounding",
+].forEach((field) => {
+  els.calculatorForm[field].addEventListener("input", renderCalculatorResult);
+  els.calculatorForm[field].addEventListener("change", renderCalculatorResult);
 });
 
 els.checkinForm.addEventListener("submit", async (event) => {
