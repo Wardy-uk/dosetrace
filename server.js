@@ -12,10 +12,29 @@ const APP_NAME = process.env.APP_NAME || "DoseTrace";
 const APP_PIN = process.env.APP_PIN || "1234";
 const SESSION_SECRET =
   process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
-const DB_DIR = path.join(__dirname, "data");
+const LEGACY_DB_DIR = path.join(__dirname, "data");
+const DB_DIR =
+  process.env.DATA_DIR ||
+  path.join(process.env.HOME || __dirname, ".local", "share", "dosetrace");
 const DB_PATH = path.join(DB_DIR, "dose-trace.db");
 
 fs.mkdirSync(DB_DIR, { recursive: true });
+
+// Preserve data across release-folder swaps by migrating the original bundled DB
+// into a stable external data directory the first time the new layout starts.
+if (!fs.existsSync(DB_PATH)) {
+  const legacyFiles = ["dose-trace.db", "dose-trace.db-shm", "dose-trace.db-wal"];
+  const hasLegacyDb = fs.existsSync(path.join(LEGACY_DB_DIR, "dose-trace.db"));
+  if (hasLegacyDb) {
+    for (const file of legacyFiles) {
+      const source = path.join(LEGACY_DB_DIR, file);
+      const target = path.join(DB_DIR, file);
+      if (fs.existsSync(source) && !fs.existsSync(target)) {
+        fs.copyFileSync(source, target);
+      }
+    }
+  }
+}
 
 const MEDICATION_SEED = [
   {

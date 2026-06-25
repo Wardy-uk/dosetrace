@@ -25,6 +25,7 @@ npm install
 $env:APP_NAME="DoseTrace"
 $env:APP_PIN="1234"
 $env:SESSION_SECRET="replace-this"
+$env:DATA_DIR="$PWD\\data"
 npm start
 ```
 
@@ -56,6 +57,7 @@ Environment=PORT=3024
 Environment=APP_NAME=DoseTrace
 Environment=APP_PIN=1234
 Environment=SESSION_SECRET=replace-with-a-long-random-string
+Environment=DATA_DIR=/home/pi/.local/share/dosetrace
 ExecStart=/usr/bin/npm start
 Restart=always
 User=pi
@@ -105,3 +107,4 @@ Add TLS with Certbot after DNS points to the Pi.
 
 - The graph is a trend estimate, not a measured blood level.
 - The PIN gate is intentionally lightweight. If you want stronger auth later, we can add per-user accounts or Tailscale/Basic Auth in front of it.
+- Store app data outside the release directory so deploys do not replace the SQLite file.
