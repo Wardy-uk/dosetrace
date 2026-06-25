@@ -35,6 +35,18 @@ const els = {
   suggestionSummary: document.getElementById("suggestion-summary"),
 };
 
+function isStandaloneMode() {
+  return (
+    window.matchMedia?.("(display-mode: standalone)")?.matches ||
+    window.navigator.standalone === true
+  );
+}
+
+function isIosBrowser() {
+  const ua = window.navigator.userAgent || "";
+  return /iPhone|iPad|iPod/i.test(ua);
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     headers: {
@@ -62,7 +74,18 @@ function renderHeroActions(authenticated) {
   els.heroActions.innerHTML = "";
   if (!authenticated) return;
 
-  if (state.installPromptEvent) {
+  if (isStandaloneMode()) {
+    const hint = document.createElement("p");
+    hint.className = "install-hint";
+    hint.textContent = "Installed app mode is active.";
+    els.heroActions.appendChild(hint);
+  } else if (isIosBrowser()) {
+    const hint = document.createElement("p");
+    hint.className = "install-hint";
+    hint.textContent =
+      "On iPhone or iPad in Safari or Chrome, tap Share, then Add to Home Screen.";
+    els.heroActions.appendChild(hint);
+  } else if (state.installPromptEvent) {
     const installButton = document.createElement("button");
     installButton.type = "button";
     installButton.textContent = "Install app";
