@@ -169,6 +169,67 @@
 
             <section class="card wide">
               <div class="card-header">
+                <h2>How You Feel Today</h2>
+              </div>
+              <form id="checkin-form" class="stack">
+                <div class="inline-grid quad">
+                  <label>
+                    Appetite back
+                    <select name="appetiteReturn">
+                      <option value="1">1 - not at all</option>
+                      <option value="2">2</option>
+                      <option value="3" selected>3</option>
+                      <option value="4">4</option>
+                      <option value="5">5 - strongly</option>
+                    </select>
+                  </label>
+                  <label>
+                    Cravings
+                    <select name="cravings">
+                      <option value="1">1 - low</option>
+                      <option value="2">2</option>
+                      <option value="3" selected>3</option>
+                      <option value="4">4</option>
+                      <option value="5">5 - high</option>
+                    </select>
+                  </label>
+                  <label>
+                    Low energy
+                    <select name="lowEnergy">
+                      <option value="1">1 - none</option>
+                      <option value="2">2</option>
+                      <option value="3" selected>3</option>
+                      <option value="4">4</option>
+                      <option value="5">5 - strong</option>
+                    </select>
+                  </label>
+                  <label>
+                    Nausea
+                    <select name="nausea">
+                      <option value="1">1 - none</option>
+                      <option value="2">2</option>
+                      <option value="3" selected>3</option>
+                      <option value="4">4</option>
+                      <option value="5">5 - strong</option>
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  Notes
+                  <input name="notes" type="text" placeholder="Optional notes for today" />
+                </label>
+                <div class="button-row">
+                  <button type="submit">Save check-in</button>
+                </div>
+                <div class="stats" id="suggestion-summary"></div>
+                <p class="muted">
+                  Suggested next dose is a tracker prompt based on your latest check-in and projected med level. It is not medical advice.
+                </p>
+              </form>
+            </section>
+
+            <section class="card wide">
+              <div class="card-header">
                 <h2>Dose History</h2>
               </div>
               <div id="history-list" class="history-list"></div>

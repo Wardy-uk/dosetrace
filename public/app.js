@@ -3,6 +3,7 @@ const state = {
   profile: null,
   medications: [],
   doses: [],
+  latestCheckin: null,
   selectedMedicationId: "",
   editingDoseId: null,
   chartRangeDays: 30,
@@ -29,6 +30,8 @@ const els = {
   chartSummary: document.getElementById("chart-summary"),
   rangeTabs: document.getElementById("range-tabs"),
   settingsForm: document.getElementById("settings-form"),
+  checkinForm: document.getElementById("checkin-form"),
+  suggestionSummary: document.getElementById("suggestion-summary"),
 };
 
 async function api(path, options = {}) {
@@ -196,6 +199,10 @@ function renderHistory() {
     .join("");
 }
 
+function getMedicationsById() {
+  return new Map(state.medications.map((med) => [med.id, med]));
+}
+
 function estimateLevelAt(pointDate, doses, medicationsById) {
   return doses.reduce((total, dose) => {
     const med = medicationsById.get(dose.medicationId);
@@ -212,7 +219,7 @@ function estimateLevelAt(pointDate, doses, medicationsById) {
 }
 
 function buildSeries() {
-  const medicationsById = new Map(state.medications.map((med) => [med.id, med]));
+  const medicationsById = getMedicationsById();
   const now = new Date();
   const backDays = state.chartRangeDays;
   const forwardDays = Math.max(14, Math.round(backDays / 2));
@@ -230,6 +237,109 @@ function buildSeries() {
   }
 
   return points;
+}
+
+function getCurrentLevel(now = new Date()) {
+  return estimateLevelAt(now, state.doses, getMedicationsById());
+}
+
+function getLatestDose() {
+  return state.doses[0] || null;
+}
+
+function getSuggestion() {
+  const latestDose = getLatestDose();
+  const latestCheckin = state.latestCheckin;
+
+  if (!latestDose || !latestCheckin) {
+    return null;
+  }
+
+  const medicationsById = getMedicationsById();
+  const currentLevel = getCurrentLevel();
+  const pressure =
+    latestCheckin.appetiteReturn +
+    latestCheckin.cravings +
+    latestCheckin.lowEnergy -
+    latestCheckin.nausea;
+
+  let thresholdRatio = 0.35;
+  let urgency = "steady";
+
+  if (pressure >= 10) {
+    thresholdRatio = 0.6;
+    urgency = "high";
+  } else if (pressure >= 7) {
+    thresholdRatio = 0.48;
+    urgency = "rising";
+  } else if (pressure <= 3) {
+    thresholdRatio = 0.22;
+    urgency = "low";
+  }
+
+  const targetLevel = latestDose.doseAmount * thresholdRatio;
+  const start = new Date();
+  let suggestedDate = null;
+
+  for (let day = 0; day <= 14; day += 1) {
+    const probe = new Date(start.getTime() + day * 24 * 36e5);
+    const projectedLevel = estimateLevelAt(probe, state.doses, medicationsById);
+    if (projectedLevel <= targetLevel) {
+      suggestedDate = probe;
+      break;
+    }
+  }
+
+  if (!suggestedDate) {
+    suggestedDate = new Date(start.getTime() + 14 * 24 * 36e5);
+  }
+
+  return {
+    currentLevel,
+    pressure,
+    thresholdRatio,
+    targetLevel,
+    suggestedDate,
+    urgency,
+    latestDose,
+  };
+}
+
+function renderSuggestion() {
+  const latestCheckin = state.latestCheckin;
+  const suggestion = getSuggestion();
+
+  if (latestCheckin) {
+    els.checkinForm.appetiteReturn.value = String(latestCheckin.appetiteReturn);
+    els.checkinForm.cravings.value = String(latestCheckin.cravings);
+    els.checkinForm.lowEnergy.value = String(latestCheckin.lowEnergy);
+    els.checkinForm.nausea.value = String(latestCheckin.nausea);
+    els.checkinForm.notes.value = latestCheckin.notes || "";
+  }
+
+  if (!latestCheckin) {
+    els.suggestionSummary.innerHTML =
+      '<span class="stats-card">Save a symptom check-in to get a suggested next dose day.</span>';
+    return;
+  }
+
+  if (!suggestion) {
+    els.suggestionSummary.innerHTML =
+      '<span class="stats-card">Log at least one dose to enable a suggested next dose day.</span>';
+    return;
+  }
+
+  const suggestionDateLabel = suggestion.suggestedDate.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  els.suggestionSummary.innerHTML = `
+    <span class="stats-card"><strong>Suggested next dose:</strong> ${suggestionDateLabel}</span>
+    <span class="stats-card"><strong>Current level:</strong> ${suggestion.currentLevel.toFixed(2)} ${suggestion.latestDose.doseUnit}</span>
+    <span class="stats-card"><strong>Signal:</strong> ${suggestion.urgency} symptom pressure (${suggestion.pressure})</span>
+  `;
 }
 
 function renderChart() {
@@ -298,11 +408,13 @@ function renderChart() {
     ctx.fillText(label, x - 20, height - 8);
   });
 
+  const medicationsById = getMedicationsById();
+
   state.doses.forEach((dose) => {
     const time = new Date(dose.takenAt).getTime();
     if (time < minX || time > maxX) return;
     const x = projectX(time);
-    const level = estimateLevelAt(new Date(dose.takenAt), state.doses, new Map(state.medications.map((med) => [med.id, med])));
+    const level = estimateLevelAt(new Date(dose.takenAt), state.doses, medicationsById);
     const y = projectY(level);
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
@@ -311,7 +423,38 @@ function renderChart() {
   });
 
   const latestDose = state.doses[0];
-  const currentLevel = estimateLevelAt(new Date(), state.doses, new Map(state.medications.map((med) => [med.id, med])));
+  const now = new Date();
+  const nowTime = now.getTime();
+  const currentLevel = estimateLevelAt(now, state.doses, medicationsById);
+  if (nowTime >= minX && nowTime <= maxX) {
+    const nowX = projectX(nowTime);
+    const nowY = projectY(currentLevel);
+
+    ctx.save();
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "#8a2d23";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(nowX, padding.top);
+    ctx.lineTo(nowX, padding.top + plotHeight);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(nowX, nowY, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#8a2d23";
+    ctx.fill();
+
+    ctx.fillStyle = "#8a2d23";
+    ctx.font = 'bold 14px Georgia, "Times New Roman", serif';
+    ctx.fillText("Today", Math.min(nowX + 10, width - 70), padding.top + 16);
+    ctx.fillText(
+      `${currentLevel.toFixed(2)} ${latestDose?.doseUnit || ""}`.trim(),
+      Math.min(nowX + 10, width - 120),
+      Math.max(padding.top + 34, nowY - 10),
+    );
+  }
+
   els.chartSummary.textContent = latestDose
     ? `Current estimated level: ${currentLevel.toFixed(2)} ${latestDose.doseUnit}. Last logged dose: ${latestDose.medicationName} on ${formatDateTime(latestDose.takenAt)}.`
     : "Log a dose to start the trend graph.";
@@ -328,6 +471,7 @@ function render() {
   renderMedications();
   renderHistory();
   renderChart();
+  renderSuggestion();
   renderSettings();
   resetDoseForm();
 }
@@ -338,6 +482,7 @@ async function refreshApp() {
   state.profile = payload.profile;
   state.medications = payload.medications;
   state.doses = payload.doses;
+  state.latestCheckin = payload.latestCheckin;
   render();
 }
 
@@ -469,6 +614,22 @@ els.rangeTabs.addEventListener("click", (event) => {
     tab.classList.toggle("active", tab === button),
   );
   renderChart();
+});
+
+els.checkinForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await api("/api/checkins", {
+    method: "POST",
+    body: JSON.stringify({
+      appetiteReturn: Number(els.checkinForm.appetiteReturn.value),
+      cravings: Number(els.checkinForm.cravings.value),
+      lowEnergy: Number(els.checkinForm.lowEnergy.value),
+      nausea: Number(els.checkinForm.nausea.value),
+      notes: els.checkinForm.notes.value.trim(),
+    }),
+  });
+
+  await refreshApp();
 });
 
 els.settingsForm.addEventListener("submit", async (event) => {

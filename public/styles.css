@@ -122,6 +122,10 @@ h1 {
   grid-template-columns: 2fr 1fr 1fr;
 }
 
+.inline-grid.quad {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -184,6 +188,13 @@ button.secondary {
 
 .stats strong {
   color: var(--ink);
+}
+
+.stats-card {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(212, 185, 145, 0.5);
 }
 
 details {

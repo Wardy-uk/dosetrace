@@ -131,6 +131,16 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (medication_id) REFERENCES medications(id)
   );
+
+  CREATE TABLE IF NOT EXISTS symptom_checkins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    appetite_return INTEGER NOT NULL,
+    cravings INTEGER NOT NULL,
+    low_energy INTEGER NOT NULL,
+    nausea INTEGER NOT NULL,
+    notes TEXT DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 const getSetting = db.prepare("SELECT value FROM settings WHERE key = ?");
@@ -220,6 +230,31 @@ function getProfile() {
   };
 }
 
+function getLatestCheckin() {
+  const row = db
+    .prepare(`
+      SELECT *
+      FROM symptom_checkins
+      ORDER BY datetime(created_at) DESC, id DESC
+      LIMIT 1
+    `)
+    .get();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    appetiteReturn: row.appetite_return,
+    cravings: row.cravings,
+    lowEnergy: row.low_energy,
+    nausea: row.nausea,
+    notes: row.notes || "",
+    createdAt: row.created_at,
+  };
+}
+
 function requireAuth(req, res, next) {
   if (!req.session.authenticated) {
     return res.status(401).json({ error: "PIN required" });
@@ -258,6 +293,7 @@ app.get("/api/app", requireAuth, (req, res) => {
   res.json({
     appName: (getSetting.get("appName") || {}).value || APP_NAME,
     profile: getProfile(),
+    latestCheckin: getLatestCheckin(),
     medications: db
       .prepare("SELECT * FROM medications ORDER BY is_custom, name")
       .all()
@@ -281,6 +317,40 @@ app.get("/api/app", requireAuth, (req, res) => {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       })),
+  });
+});
+
+app.post("/api/checkins", requireAuth, (req, res) => {
+  const appetiteReturn = Number(req.body?.appetiteReturn);
+  const cravings = Number(req.body?.cravings);
+  const lowEnergy = Number(req.body?.lowEnergy);
+  const nausea = Number(req.body?.nausea);
+  const notes = String(req.body?.notes || "").trim();
+
+  const ratings = [appetiteReturn, cravings, lowEnergy, nausea];
+  if (
+    ratings.some((value) => !Number.isInteger(value) || value < 1 || value > 5)
+  ) {
+    return res.status(400).json({ error: "Check-in ratings must be 1 to 5" });
+  }
+
+  const result = db
+    .prepare(`
+      INSERT INTO symptom_checkins (
+        appetite_return,
+        cravings,
+        low_energy,
+        nausea,
+        notes
+      )
+      VALUES (?, ?, ?, ?, ?)
+    `)
+    .run(appetiteReturn, cravings, lowEnergy, nausea, notes);
+
+  res.json({
+    checkin: db
+      .prepare("SELECT * FROM symptom_checkins WHERE id = ?")
+      .get(result.lastInsertRowid),
   });
 });
 
