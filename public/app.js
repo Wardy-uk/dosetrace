@@ -373,6 +373,14 @@ function renderChart() {
     padding.left + ((time - minX) / Math.max(1, maxX - minX)) * plotWidth;
   const projectY = (level) =>
     padding.top + plotHeight - (level / maxLevel) * plotHeight;
+  const drawLabel = (text, x, y, fillStyle) => {
+    ctx.font = 'bold 14px Georgia, "Times New Roman", serif';
+    const textWidth = ctx.measureText(text).width;
+    const clampedX = Math.max(padding.left + 8, Math.min(x, width - textWidth - 8));
+    const clampedY = Math.max(padding.top + 16, Math.min(y, height - 12));
+    ctx.fillStyle = fillStyle;
+    ctx.fillText(text, clampedX, clampedY);
+  };
 
   ctx.beginPath();
   points.forEach((point, index) => {
@@ -426,6 +434,7 @@ function renderChart() {
   const now = new Date();
   const nowTime = now.getTime();
   const currentLevel = estimateLevelAt(now, state.doses, medicationsById);
+  const suggestion = getSuggestion();
   if (nowTime >= minX && nowTime <= maxX) {
     const nowX = projectX(nowTime);
     const nowY = projectY(currentLevel);
@@ -446,13 +455,62 @@ function renderChart() {
     ctx.fill();
 
     ctx.fillStyle = "#8a2d23";
-    ctx.font = 'bold 14px Georgia, "Times New Roman", serif';
-    ctx.fillText("Today", Math.min(nowX + 10, width - 70), padding.top + 16);
-    ctx.fillText(
+    drawLabel("Today", nowX + 10, padding.top + 16, "#8a2d23");
+    drawLabel(
       `${currentLevel.toFixed(2)} ${latestDose?.doseUnit || ""}`.trim(),
-      Math.min(nowX + 10, width - 120),
+      nowX + 10,
       Math.max(padding.top + 34, nowY - 10),
+      "#8a2d23",
     );
+  }
+
+  if (suggestion) {
+    const suggestedTime = suggestion.suggestedDate.getTime();
+    const suggestedLevel = estimateLevelAt(
+      suggestion.suggestedDate,
+      state.doses,
+      medicationsById,
+    );
+
+    if (suggestedTime >= minX && suggestedTime <= maxX) {
+      const suggestedX = projectX(suggestedTime);
+      const suggestedY = projectY(suggestedLevel);
+
+      ctx.save();
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = "#155e63";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(suggestedX, padding.top);
+      ctx.lineTo(suggestedX, padding.top + plotHeight);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(padding.left, suggestedY);
+      ctx.lineTo(width - padding.right, suggestedY);
+      ctx.strokeStyle = "rgba(21,94,99,0.35)";
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(suggestedX, suggestedY, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#155e63";
+      ctx.fill();
+
+      const dayLabel = suggestion.suggestedDate.toLocaleDateString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+
+      drawLabel(`Suggested dose ${dayLabel}`, suggestedX + 10, padding.top + 52, "#155e63");
+      drawLabel(
+        `Target ${suggestedLevel.toFixed(2)} ${suggestion.latestDose.doseUnit}`,
+        suggestedX + 10,
+        suggestedY - 12,
+        "#155e63",
+      );
+    }
   }
 
   els.chartSummary.textContent = latestDose

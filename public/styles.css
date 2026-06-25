@@ -94,6 +94,14 @@ h1 {
   grid-column: span 8;
 }
 
+.card.full {
+  grid-column: span 12;
+}
+
+.chart-card {
+  padding-bottom: 16px;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -287,6 +295,7 @@ details {
 
 @media (max-width: 960px) {
   .card,
+  .card.full,
   .card.wide {
     grid-column: span 12;
   }
