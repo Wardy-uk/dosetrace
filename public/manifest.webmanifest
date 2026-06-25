@@ -1,0 +1,18 @@
+{
+  "name": "DoseTrace",
+  "short_name": "DoseTrace",
+  "description": "Lightweight GLP-1 tracker with dose history and estimated medication-level graph.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f0e6",
+  "theme_color": "#155e63",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

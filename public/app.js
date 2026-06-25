@@ -7,6 +7,7 @@ const state = {
   selectedMedicationId: "",
   editingDoseId: null,
   chartRangeDays: 30,
+  installPromptEvent: null,
 };
 
 const els = {
@@ -60,6 +61,24 @@ function setAuthenticated(authenticated) {
 function renderHeroActions(authenticated) {
   els.heroActions.innerHTML = "";
   if (!authenticated) return;
+
+  if (state.installPromptEvent) {
+    const installButton = document.createElement("button");
+    installButton.type = "button";
+    installButton.textContent = "Install app";
+    installButton.addEventListener("click", async () => {
+      const prompt = state.installPromptEvent;
+      state.installPromptEvent = null;
+      renderHeroActions(true);
+      await prompt.prompt();
+    });
+    els.heroActions.appendChild(installButton);
+  } else {
+    const hint = document.createElement("p");
+    hint.className = "install-hint";
+    hint.textContent = "Install from your browser menu for app-style access.";
+    els.heroActions.appendChild(hint);
+  }
 
   const button = document.createElement("button");
   button.className = "secondary";
@@ -705,6 +724,10 @@ els.settingsForm.addEventListener("submit", async (event) => {
 });
 
 async function bootstrap() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+  }
+
   const payload = await api("/api/bootstrap");
   state.appName = payload.appName;
   els.appTitle.textContent = state.appName;
@@ -715,6 +738,17 @@ async function bootstrap() {
     await refreshApp();
   }
 }
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  state.installPromptEvent = event;
+  renderHeroActions(!els.appView.classList.contains("hidden"));
+});
+
+window.addEventListener("appinstalled", () => {
+  state.installPromptEvent = null;
+  renderHeroActions(!els.appView.classList.contains("hidden"));
+});
 
 bootstrap().catch((error) => {
   els.loginError.textContent = error.message;

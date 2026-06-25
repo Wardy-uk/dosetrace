@@ -291,6 +291,13 @@ details {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.install-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 @media (max-width: 960px) {
