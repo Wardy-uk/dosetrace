@@ -1,0 +1,20 @@
+{
+  "name": "dosetrace",
+  "version": "1.0.0",
+  "description": "Lightweight GLP-1 tracker with PIN access and estimated med-level graph",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.11.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0"
+  }
+}

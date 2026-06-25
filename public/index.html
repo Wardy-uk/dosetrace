@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DoseTrace</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Lightweight GLP-1 tracker</p>
+          <h1 id="app-title">DoseTrace</h1>
+          <p class="hero-copy">
+            Personal dose logging with a simple estimated-level graph. Trend
+            estimate only, not medical advice.
+          </p>
+        </div>
+        <div class="hero-actions" id="hero-actions"></div>
+      </header>
+
+      <main id="app-root">
+        <section class="card login-card" id="login-view">
+          <h2>Enter PIN</h2>
+          <p class="muted">
+            This tracker stays locked behind a PIN. Set a stronger PIN after
+            first login if you keep the default.
+          </p>
+          <form id="login-form" class="stack">
+            <label>
+              PIN
+              <input id="pin-input" inputmode="numeric" type="password" maxlength="8" required />
+            </label>
+            <button type="submit">Unlock</button>
+            <p class="error" id="login-error"></p>
+          </form>
+        </section>
+
+        <section id="app-view" class="hidden">
+          <div class="grid">
+            <section class="card">
+              <div class="card-header">
+                <h2>Profile</h2>
+              </div>
+              <form id="profile-form" class="stack">
+                <div class="inline-grid">
+                  <label>
+                    Height ft
+                    <input name="heightFt" type="number" min="0" max="9" required />
+                  </label>
+                  <label>
+                    Height in
+                    <input name="heightIn" type="number" min="0" max="11" required />
+                  </label>
+                </div>
+                <div class="inline-grid">
+                  <label>
+                    Weight st
+                    <input name="weightSt" type="number" min="0" max="99" required />
+                  </label>
+                  <label>
+                    Weight lb
+                    <input name="weightLb" type="number" min="0" max="13" required />
+                  </label>
+                </div>
+                <div class="stats" id="profile-stats"></div>
+                <button type="submit">Save profile</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <h2>Medication</h2>
+              </div>
+              <form id="custom-med-form" class="stack">
+                <label>
+                  Choose medication
+                  <select id="medication-select"></select>
+                </label>
+                <p class="muted" id="medication-meta"></p>
+                <details>
+                  <summary>Add custom medication</summary>
+                  <div class="stack details-stack">
+                    <label>
+                      Name
+                      <input name="name" type="text" />
+                    </label>
+                    <label>
+                      Compound
+                      <input name="compound" type="text" />
+                    </label>
+                    <div class="inline-grid">
+                      <label>
+                        Dose unit
+                        <input name="doseUnit" type="text" placeholder="mg" />
+                      </label>
+                      <label>
+                        Half-life hours
+                        <input name="halfLifeHours" type="number" min="0.1" step="0.1" />
+                      </label>
+                    </div>
+                    <button type="submit">Add medication</button>
+                  </div>
+                </details>
+              </form>
+            </section>
+
+            <section class="card wide">
+              <div class="card-header">
+                <h2>Log Dose</h2>
+                <p class="muted" id="dose-form-mode">New dose</p>
+              </div>
+              <form id="dose-form" class="stack">
+                <input type="hidden" name="doseId" />
+                <div class="inline-grid triple">
+                  <label>
+                    Medication
+                    <select name="medicationId" required></select>
+                  </label>
+                  <label>
+                    Dose
+                    <input name="doseAmount" type="number" min="0.01" step="0.01" required />
+                  </label>
+                  <label>
+                    Unit
+                    <input name="doseUnit" type="text" required />
+                  </label>
+                </div>
+                <div class="inline-grid">
+                  <label>
+                    Date
+                    <input name="takenDate" type="date" required />
+                  </label>
+                  <label>
+                    Time
+                    <input name="takenTime" type="time" required />
+                  </label>
+                </div>
+                <label>
+                  Note
+                  <input name="note" type="text" placeholder="Optional note" />
+                </label>
+                <div class="button-row">
+                  <button type="submit">Save dose</button>
+                  <button type="button" class="secondary hidden" id="cancel-edit">Cancel edit</button>
+                </div>
+                <p class="muted">
+                  Historic doses are supported. Pick any past date and time to backfill older entries.
+                </p>
+              </form>
+            </section>
+
+            <section class="card wide">
+              <div class="card-header">
+                <h2>Estimated Medication Level</h2>
+                <div class="range-tabs" id="range-tabs">
+                  <button type="button" data-range="7">7D</button>
+                  <button type="button" data-range="30" class="active">30D</button>
+                  <button type="button" data-range="90">90D</button>
+                </div>
+              </div>
+              <canvas id="level-chart" width="1200" height="420"></canvas>
+              <div class="chart-meta">
+                <p id="chart-summary"></p>
+                <p class="muted">Trend estimate only. Based on dose amount and half-life, not measured concentration.</p>
+              </div>
+            </section>
+
+            <section class="card wide">
+              <div class="card-header">
+                <h2>Dose History</h2>
+              </div>
+              <div id="history-list" class="history-list"></div>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <h2>Settings</h2>
+              </div>
+              <form id="settings-form" class="stack">
+                <label>
+                  App name
+                  <input name="appName" type="text" />
+                </label>
+                <label>
+                  New PIN
+                  <input name="pin" inputmode="numeric" type="password" maxlength="8" placeholder="4 to 8 digits" />
+                </label>
+                <button type="submit">Save settings</button>
+              </form>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js" defer></script>
+  </body>
+  </html>
